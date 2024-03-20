@@ -1,1 +1,1 @@
-# storyuz
+# storeuz
