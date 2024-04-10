@@ -1,8 +1,8 @@
 # pip freeze > requirements.txt
 
-# with out db
-
 from flask import Flask ,request ,jsonify
+
+# withot database
 
 app = Flask(__name__)
 
