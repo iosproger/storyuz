@@ -23,7 +23,9 @@ def products():
     cursor = conn.cursor()
     if request.method == 'GET':
         print("get")
-        cursor.execute("SELECT * FROM product")
+        cursor.execute("""
+            SELECT * FROM "product"
+        """)
         products = [
             dict(id=row[0], barcode=row[1], name=row[2], number=row[3], price=row[4])
             for row in cursor.fetchall()
@@ -38,8 +40,7 @@ def products():
         new_name = request.form['name']
         new_number = request.form['number']
         new_price = request.form['price']
-        sql = """INSERT INTO product (barcode, name, number, price) 
-                 VALUES (?, ?, ?, ?)"""
+        sql = """INSERT INTO product(barcode, name, number, price) VALUES (?, ?, ?, ?)"""
         cursor.execute(sql, (new_barcode, new_name, new_number, new_price))
         conn.commit()
         return f'Product with the id: {cursor.lastrowid} created successfully', 201
@@ -50,7 +51,7 @@ def single_product(id):
     cursor = conn.cursor()
     if request.method == 'GET':
         print(f"get {id}")
-        cursor.execute("SELECT * FROM product WHERE id=?", (id,))
+        cursor.execute("""SELECT * FROM "product" WHERE barcode=?""", (id,))
         product = cursor.fetchone()
         if product:
             return jsonify(dict(id=product[0], barcode=product[1], name=product[2], number=product[3], price=product[4]))
@@ -58,7 +59,7 @@ def single_product(id):
             return jsonify({'message': 'Product not found'}), 404
 
     if request.method == 'PUT':
-        sql = """UPDATE product
+        sql = """UPDATE "product"
                  SET barcode = ?, name = ?, number = ?, price = ?
                  WHERE id = ?"""
         barcodee = request.form['barcode']
@@ -94,7 +95,7 @@ def single_product(id):
 
     if request.method == 'DELETE':
         print(f"del id {id}")
-        cursor.execute("DELETE FROM product WHERE id=?", (id,))
+        cursor.execute("""DELETE FROM "product" WHERE barcode=?""", (id,))
         conn.commit()
         return jsonify({'message': f'Product deleted {id}'}), 200
 
