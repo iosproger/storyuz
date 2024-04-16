@@ -16,10 +16,10 @@ book_list = [
     },
 {
         "id":1,
-        "barcode":"1230483745",
-        "name":"Fanta",
+        "barcode":"6971417610196",
+        "name":"Pen",
         "number":"10",
-        "price":"8000"
+        "price":"1500"
     },
 {
         "id":2,
