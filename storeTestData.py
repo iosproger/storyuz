@@ -8,16 +8,90 @@ app = Flask(__name__)
 def db_connection():
     conn = None
     try:
-        conn = sqlite3.connect("store.sqlite")
+        conn = sqlite3.connect("product.db")
     except sqlite3.Error as e:
         print(e)
     return conn
+
+def history_add(date, userID, productnames, prices):
+    conhistory = sqlite3.connect('history.db')
+    cursothistory = conhistory.cursor()
+
+    # Convert lists to strings
+    productnames_str = ', '.join(productnames)
+    prices_str = ', '.join(map(str, prices))
+
+    cursothistory.execute("INSERT INTO history (date, userID, productnames, prices) VALUES (?, ?, ?, ?)",
+                          (date, userID, productnames_str, prices_str))
+    conhistory.commit()
+    conhistory.close()
+    print("Data added to history.db")
+
 
 user_list = [
     {"id": 0, "username": "user1", "psw": "1234", "wallet": 1500},
     {"id": 1, "username": "user2", "psw": "1234", "wallet": 1000},
     {"id": 2, "username": "user3", "psw": "1234", "wallet": 2400}
 ]
+
+
+@app.route('/history', methods=['GET', 'PUT'])
+def index2():
+    if request.method == "GET":
+        conhistory = sqlite3.connect('history.db')
+        cursothistory = conhistory.cursor()
+        try:
+            # Load JSON data from request
+            new_userid = request.form['userid']  # Assuming userid is in the query parameters
+
+            # Execute SQL query to fetch history
+            cursothistory.execute("SELECT * FROM history WHERE userID = ?", (new_userid,))
+            history_list = cursothistory.fetchall()  # Fetch all rows
+
+            # Check if history exists
+            if history_list:
+                # Convert rows to list of dictionaries
+                history_dicts = []
+                for row in history_list:
+                    history_dict = {
+                        'date': row[1],
+                        'productnames': row[3].split(', '),
+                        'prices': [int(price) for price in row[4].split(', ')]  # Convert prices to integers
+                    }
+                    history_dicts.append(history_dict)
+
+                # Return success response with history list
+                return jsonify(history_dicts), 200
+            else:
+                return jsonify({'error': 'History not found for the given user'}), 404
+
+        except Exception as e:
+            # Handle errors and return appropriate error message
+            return jsonify({'error': str(e)}), 400
+        finally:
+            # Close cursor and connection
+            cursothistory.close()
+            conhistory.close()
+
+    if request.method == 'PUT':
+        try:
+            # Parse JSON data
+            print("test")
+            data = request.json
+            productnames = data.get('productnames')
+            date = data.get('date')
+            userid = data.get('userid')  # Corrected from 'userID'
+            prices = data.get('prices')
+
+            print("test")
+            history_add(date, userid, productnames, prices)
+
+            return jsonify('update successfully ')
+
+        except Exception as e:
+            return jsonify(f'error: {e}'), 400
+    return jsonify('error: Method not allowed'), 405
+
 
 @app.route('/')
 def index():
@@ -50,12 +124,15 @@ def get_user_list():
         return jsonify({'user add Post successfully get new id:': user_list[-1]['id']}), 201
 
 # url for wallet change
-@app.route('/userwallet/<username>', methods=['PUT'])
-def update_user_wallet(username):
+@app.route('/userwallet', methods=['PUT'])
+def update_user_wallet():
     if request.method == 'PUT':
-        new_wallet = request.form.get('wallet')
-        operation = request.form.get('operation')
-
+        try:
+            username = request.form.get('username')
+            new_wallet = request.form.get('wallet')
+            operation = request.form.get('operation')
+        except (TypeError, ValueError):
+            return jsonify({'error': 'wallet and operation'}), 400
         # Try to convert the wallet value to float
         try:
             wallet_value = float(new_wallet)
@@ -91,6 +168,7 @@ def products_list():
     if request.method == 'GET':
         cursor.execute("SELECT * FROM product")
         products = cursor.fetchall()
+        cursor.close()
         return jsonify(
             [{'id': row[0], 'barcode': row[1], 'name': row[2], 'number': row[3], 'price': row[4]} for row in products])
 
@@ -98,7 +176,6 @@ def products_list():
 
         try:
             # Load JSON data from request
-
             new_barcode = request.form['barcode']
             new_name = request.form['name']
             new_number = request.form['number']
@@ -108,8 +185,9 @@ def products_list():
             # Insert data into the database
             cursor.execute("INSERT INTO product (barcode, name, number, price) VALUES (?, ?, ?, ?)",
                            (new_barcode, new_name, new_number, new_price))
-            conn.commit()
 
+            conn.commit()
+            conn.close()
             # Return success response
             return jsonify({'Post successfully get new id:': cursor.lastrowid}), 201
         except Exception as e:
@@ -121,6 +199,7 @@ def products_list():
 def single_product(barcode):
     conn = db_connection()
     cursor = conn.cursor()
+
 
     # Get product by barcode
     cursor.execute("SELECT * FROM product WHERE barcode = ?", (barcode,))
@@ -135,7 +214,6 @@ def single_product(barcode):
 
     # Update product by barcode
     if request.method == 'PUT':
-
         try:
             new_barcode = request.form['barcode']
             new_name = request.form['name']
@@ -146,6 +224,7 @@ def single_product(barcode):
                            (new_barcode, new_name, new_number,
                             new_price, barcode))
             conn.commit()
+            conn.close()
             return jsonify({'message': 'Product updated successfully'})
         except Exception as e:
             return jsonify({'error': str(e)}), 400
@@ -155,6 +234,7 @@ def single_product(barcode):
         if product:
             cursor.execute("DELETE FROM product WHERE barcode = ?", (barcode,))
             conn.commit()
+            conn.close()
             return jsonify({'message': f'Product with barcode {barcode} deleted'}), 200
         else:
             abort(404, description="Product not found")
@@ -163,8 +243,11 @@ def single_product(barcode):
 def order_put():
     if request.method == 'PUT':
         # Get barcode and new number from the request
-        barcode = request.form.get('barcode')
-        new_number = request.form.get('number')
+        try:
+            barcode = request.form.get('barcode')
+            new_number = request.form.get('number')
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Invalid barcode and number'}), 400
 
         # Validate new number
         try:
@@ -196,6 +279,7 @@ def order_put():
             # Update product quantity in the database
             cursor.execute("UPDATE product SET number = ? WHERE barcode = ?", (updated_number, barcode))
             conn.commit()
+            conn.close()
 
             # Return success message
             return jsonify({'message': 'Product updated successfully'}), 200
@@ -210,12 +294,6 @@ def order_put():
                 cursor.close()
             if conn:
                 conn.close()
-
-
-
-
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
