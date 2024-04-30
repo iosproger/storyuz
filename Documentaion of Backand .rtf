@@ -1,0 +1,403 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2759
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Certainly! Here's the documentation for your Flask API endpoint `/history`:\
+\
+---\
+\
+## History Endpoint Documentation\
+\
+### Description\
+\
+The `/history` endpoint allows users to retrieve and update their purchase history.\
+\
+### Methods\
+\
+- `GET`: Retrieve purchase history for a specific user.\
+- `PUT`: Add a new purchase record to the history.\
+\
+### Endpoint\
+\
+- `/history`\
+\
+### Request Parameters\
+\
+#### GET Method\
+\
+- `userid` (query parameter): The ID of the user whose purchase history needs to be retrieved.\
+\
+#### PUT Method\
+\
+The request body should be in JSON format and contain the following fields:\
+\
+- `userid` (string): The ID of the user making the purchase.\
+- `date` (string): The date of the purchase (format: "YYYY-MM-DD").\
+- `productnames` (list of strings): The names of the products purchased.\
+- `prices` (list of integers): The prices of the products purchased.\
+\
+### Responses\
+\
+#### Success Responses\
+\
+- **GET**: Status code `200 OK`\
+  - JSON object containing the purchase history for the specified user. Each purchase record includes the following fields:\
+    - `ID`: The unique identifier of the purchase record.\
+    - `date`: The date of the purchase.\
+    - `userID`: The ID of the user who made the purchase.\
+    - `productnames`: A list of product names purchased in the transaction.\
+    - `prices`: A list of prices corresponding to the purchased products.\
+\
+- **PUT**: Status code `200 OK`\
+  - JSON object indicating that the purchase record was added successfully.\
+\
+#### Error Responses\
+\
+- Status code `400 Bad Request`\
+  - If there's an error processing the request or the request body is malformed.\
+  - JSON object containing the error message.\
+\
+- Status code `404 Not Found`\
+  - If no purchase history is found for the specified user.\
+  - JSON object containing the error message.\
+\
+- Status code `405 Method Not Allowed`\
+  - If the HTTP method used is not allowed (only GET and PUT methods are allowed for this endpoint).\
+\
+### Examples\
+\
+#### GET Method\
+\
+Retrieve purchase history for user with ID "user1":\
+\
+```\
+GET /history?userid=user1\
+```\
+\
+Response:\
+\
+```json\
+[\
+    \{\
+        "ID": 1,\
+        "date": "2024-04-30",\
+        "userID": "user1",\
+        "productnames": ["test", "test1"],\
+        "prices": [200, 300]\
+    \},\
+    \{\
+        "ID": 3,\
+        "date": "2024-04-30",\
+        "userID": "user1",\
+        "productnames": ["test", "test1", "test2"],\
+        "prices": [200, 300, 100]\
+    \},\
+    \{\
+        "ID": 4,\
+        "date": "2024-04-30",\
+        "userID": "user1",\
+        "productnames": ["test", "test1", "test2"],\
+        "prices": [200, 300, 100]\
+    \}\
+]\
+```\
+\
+#### PUT Method\
+\
+Add a new purchase record for user with ID "user2":\
+\
+```\
+PUT /history\
+```\
+\
+Request Body:\
+\
+```json\
+\{\
+    "userid": "user2",\
+    "date": "2024-05-01",\
+    "productnames": ["test3", "test4"],\
+    "prices": [150, 250]\
+\}\
+```\
+\
+Response:\
+\
+```json\
+"update successfully"\
+```\
+\
+---\
+\
+This documentation provides information on how to interact with the `/history` endpoint, including supported methods, request parameters, and expected responses.\
+\
+Sure! Here's the documentation for all the APIs in your Flask application:\
+\
+---\
+\
+## API Documentation\
+\
+### Users Endpoint\
+\
+#### Description\
+\
+The `/users` endpoint allows users to manage user accounts.\
+\
+#### Methods\
+\
+- `GET`: Retrieve a list of all users.\
+- `POST`: Create a new user account.\
+\
+#### Endpoint\
+\
+- `/users`\
+\
+#### Request Parameters\
+\
+- None\
+\
+#### GET Method\
+\
+Retrieve a list of all users:\
+\
+```\
+GET /users\
+```\
+\
+Response:\
+\
+```json\
+[\
+    \{"id": 0, "username": "user1", "wallet": 1500\},\
+    \{"id": 1, "username": "user2", "wallet": 1000\},\
+    \{"id": 2, "username": "user3", "wallet": 2400\}\
+]\
+```\
+\
+#### POST Method\
+\
+Create a new user account:\
+\
+```\
+POST /users\
+```\
+\
+Request Body:\
+\
+```json\
+\{\
+    "username": "newuser",\
+    "psw": "password"\
+\}\
+```\
+\
+Response:\
+\
+```json\
+\{\
+    "user add Post successfully get new id:": 3\
+\}\
+```\
+\
+### User Wallet Endpoint\
+\
+#### Description\
+\
+The `/userwallet` endpoint allows users to update their wallet balance.\
+\
+#### Methods\
+\
+- `PUT`: Update user wallet balance.\
+\
+#### Endpoint\
+\
+- `/userwallet/<username>`\
+\
+#### Request Parameters\
+\
+- `username` (path parameter): The username of the user whose wallet balance needs to be updated.\
+\
+#### PUT Method\
+\
+Update user wallet balance:\
+\
+```\
+PUT /userwallet/user1\
+```\
+\
+Request Body:\
+\
+```json\
+\{\
+    "wallet": 1000,\
+    "operation": "up"\
+\}\
+```\
+\
+Response:\
+\
+```json\
+\{\
+    "id": 0,\
+    "username": "user1",\
+    "wallet": 2500\
+\}\
+```\
+\
+### Products Endpoint\
+\
+#### Description\
+\
+The `/products` endpoint allows users to manage product information.\
+\
+#### Methods\
+\
+- `GET`: Retrieve a list of all products.\
+- `POST`: Add a new product.\
+- `PUT`: Update an existing product.\
+- `DELETE`: Delete an existing product.\
+\
+#### Endpoint\
+\
+- `/products`\
+\
+#### Request Parameters\
+\
+- None\
+\
+#### GET Method\
+\
+Retrieve a list of all products:\
+\
+```\
+GET /products\
+```\
+\
+Response:\
+\
+```json\
+[\
+    \{"id": 1, "barcode": "4780012960153", "name": "hydrolife 0.5", "number": 10, "price": 3000\}\
+]\
+```\
+\
+#### POST Method\
+\
+Add a new product:\
+\
+```\
+POST /products\
+```\
+\
+Request Body:\
+\
+```json\
+\{\
+    "barcode": "1234567890123",\
+    "name": "New Product",\
+    "number": 20,\
+    "price": 2500\
+\}\
+```\
+\
+Response:\
+\
+```json\
+\{\
+    "Post successfully get new id:": 2\
+\}\
+```\
+\
+#### PUT Method\
+\
+Update an existing product:\
+\
+```\
+PUT /products/1234567890123\
+```\
+\
+Request Body:\
+\
+```json\
+\{\
+    "barcode": "1234567890123",\
+    "name": "Updated Product",\
+    "number": 15,\
+    "price": 2800\
+\}\
+```\
+\
+Response:\
+\
+```json\
+\{\
+    "message": "Product updated successfully"\
+\}\
+```\
+\
+#### DELETE Method\
+\
+Delete an existing product:\
+\
+```\
+DELETE /products/1234567890123\
+```\
+\
+Response:\
+\
+```json\
+\{\
+    "message": "Product with barcode 1234567890123 deleted"\
+\}\
+```\
+\
+### Order Endpoint\
+\
+#### Description\
+\
+The `/order` endpoint allows users to place orders and update product stock.\
+\
+#### Methods\
+\
+- `PUT`: Place an order and update product stock.\
+\
+#### Endpoint\
+\
+- `/order`\
+\
+#### Request Parameters\
+\
+- None\
+\
+#### PUT Method\
+\
+Place an order and update product stock:\
+\
+```\
+PUT /order\
+```\
+\
+Request Body:\
+\
+```json\
+\{\
+    "barcode": "1234567890123",\
+    "number": 5\
+\}\
+```\
+\
+Response:\
+\
+```json\
+\{\
+    "message": "Product updated successfully"\
+\}\
+```\
+\
+---\
+\
+This documentation provides information on how to interact with each endpoint in your Flask application, including supported methods, request parameters, and expected responses.\
+}
