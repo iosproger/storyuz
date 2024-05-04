@@ -18,34 +18,35 @@ import sqlite3
 # connie.close()
 
 # Create the user database and table
-# connieuser = sqlite3.connect('user.db')
-# cuser = connieuser.cursor()
-#
-# cuser.execute("""
-# CREATE TABLE user(
-#   ID INTEGER PRIMARY KEY AUTOINCREMENT,
-#   Name TEXT,
-#   Psw TEXT
-# );
-# """)
-#
-# connieuser.commit()
-# connieuser.close()
-#
-# # Create the history database and table
-conniehistory = sqlite3.connect('history.db')
-chistory = conniehistory.cursor()
+connieuser = sqlite3.connect('user.db')
+cuser = connieuser.cursor()
 
-chistory.execute("""
-CREATE TABLE history(
+cuser.execute("""
+CREATE TABLE user(
   ID INTEGER PRIMARY KEY AUTOINCREMENT,
-  date TEXT,
-  userID TEXT,
-  productnames TEXT,
-  prices TEXT,
-  quantity TEXT
+  username TEXT,
+  psw TEXT, 
+  wallet FLOAT
 );
 """)
 
-conniehistory.commit()
-conniehistory.close()
+connieuser.commit()
+connieuser.close()
+#
+# # Create the history database and table
+# conniehistory = sqlite3.connect('history.db')
+# chistory = conniehistory.cursor()
+#
+# chistory.execute("""
+# CREATE TABLE history(
+#   ID INTEGER PRIMARY KEY AUTOINCREMENT,
+#   date TEXT,
+#   userID TEXT,
+#   productnames TEXT,
+#   prices TEXT,
+#   quantity TEXT
+# );
+# """)
+#
+# conniehistory.commit()
+# conniehistory.close()
