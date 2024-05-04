@@ -31,11 +31,11 @@ def history_add(date, userID, productnames, prices,quantity):
     print("Data added to history.db")
 
 
-user_list = [
-    {"id": 0, "username": "user1", "psw": "1234", "wallet": 1500},
-    {"id": 1, "username": "user2", "psw": "1234", "wallet": 1000},
-    {"id": 2, "username": "user3", "psw": "1234", "wallet": 2400}
-]
+# user_list = [
+#     {"id": 0, "username": "user1", "psw": "1234", "wallet": 1500},
+#     {"id": 1, "username": "user2", "psw": "1234", "wallet": 1000},
+#     {"id": 2, "username": "user3", "psw": "1234", "wallet": 2400}
+# ]
 
 
 @app.route('/history', methods=['GET', 'PUT'])
@@ -102,67 +102,72 @@ def index2():
 def index():
     return 'Hello, world!'
 
-# url for users
 @app.route('/users', methods=['GET', 'POST'])
-def get_user_list():
-    if request.method == 'GET':
-        return jsonify(user_list)
+def handle_users():
+    conn = sqlite3.connect('user.db')
+    cursor = conn.cursor()
 
-    if request.method == 'POST':
+    if request.method == 'GET':
+        cursor.execute("SELECT * FROM user")
+        users = cursor.fetchall()
+        conn.close()
+        return jsonify([{'id': row[0], 'username': row[1], 'psw': row[2], 'wallet': row[3]} for row in users])
+
+    elif request.method == 'POST':
         new_username = request.form.get('username')
         new_psw = request.form.get('psw')
         new_wallet = 0
 
-        if any(user['username'] == new_username for user in user_list):
+        cursor.execute("SELECT * FROM user WHERE username = ?", (new_username,))
+        existing_user = cursor.fetchone()
+        if existing_user:
+            conn.close()
             return jsonify({'error': 'Username already exists'}), 409
 
-        new_id = user_list[-1]['id'] + 1 if user_list else 0
+        cursor.execute("INSERT INTO user (username, psw, wallet) VALUES (?, ?, ?)",
+                       (new_username, new_psw, new_wallet))
+        conn.commit()
+        conn.close()
 
-        new_user = {
-                'id': new_id,
-                'username': new_username,
-                'psw': new_psw,
-                'wallet': new_wallet
-            }
-        user_list.append(new_user)
+        return jsonify({'message': 'User added successfully'}), 201
 
-        return jsonify({'user add Post successfully get new id:': user_list[-1]['id']}), 201
-
-# url for wallet change
 @app.route('/userwallet', methods=['PUT'])
 def update_user_wallet():
+    conn = sqlite3.connect('user.db')
+    cursor = conn.cursor()
+
     if request.method == 'PUT':
         try:
             username = request.form.get('username')
             new_wallet = request.form.get('wallet')
             operation = request.form.get('operation')
         except (TypeError, ValueError):
-            return jsonify({'error': 'wallet and operation'}), 400
-        # Try to convert the wallet value to float
-        try:
-            wallet_value = float(new_wallet)
-        except (TypeError, ValueError):
-            return jsonify({'error': 'Invalid wallet value provided'}), 400
+            conn.close()
+            return jsonify({'error': 'Invalid request parameters'}), 400
 
-        # Find the user with the provided username
-        for user in user_list:
-            if user['username'] == username:
-                # Check the operation and update the user's wallet accordingly
-                if operation == 'up':
-                    user['wallet'] += wallet_value
-                elif operation == 'down':
-                    if user['wallet'] - wallet_value < 0:
-                        return jsonify({'error': 'Insufficient balance'}), 400
-                    user['wallet'] -= wallet_value
-                else:
-                    return jsonify({'error': 'Invalid operation'}), 400
+        cursor.execute("SELECT * FROM user WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        if not user:
+            conn.close()
+            return jsonify({'error': 'User not found'}), 404
 
-                # Return the updated user data
-                return jsonify(user), 200
+        current_wallet = user[3]
+        if operation == 'up':
+            new_wallet = float(new_wallet) + current_wallet
+        elif operation == 'down':
+            if current_wallet < float(new_wallet):
+                conn.close()
+                return jsonify({'error': 'Insufficient balance'}), 400
+            new_wallet = current_wallet - float(new_wallet)
+        else:
+            conn.close()
+            return jsonify({'error': 'Invalid operation'}), 400
 
-        # If the user is not found, return a 404 error
-        return jsonify({'error': 'User not found'}), 404
+        cursor.execute("UPDATE user SET wallet = ? WHERE username = ?", (new_wallet, username))
+        conn.commit()
+        conn.close()
 
+        return jsonify({'message': 'Wallet updated successfully'}), 200
 
 #  url for product
 @app.route('/products', methods=['GET', 'POST'])
@@ -244,6 +249,8 @@ def single_product(barcode):
         else:
             abort(404, description="Product not found")
 
+    return jsonify({'msg':'sellect correct methods'})
+
 @app.route('/order', methods=['PUT'])
 def order_put():
     if request.method == 'PUT':
@@ -293,12 +300,6 @@ def order_put():
             # Return error message in case of any exception
             return jsonify({'error': str(e)}), 400
 
-        finally:
-            # Close cursor and connection
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True)
