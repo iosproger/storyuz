@@ -102,6 +102,27 @@ def index2():
 def index():
     return 'Hello, world!'
 
+@app.route('/user', methods=['GET'])
+def check_user():
+    conn = sqlite3.connect('user.db')
+    cursor = conn.cursor()
+
+    if request.method == 'GET':
+        new_username = request.form.get('username')
+        new_psw = request.form.get('psw')
+
+        cursor.execute("SELECT * FROM user WHERE username = ?", (new_username,))
+        existing_user = cursor.fetchone()
+        if not existing_user:
+            conn.close()
+            return jsonify({'msg': 'user not found'}), 409
+
+        if existing_user[2] == new_psw:
+            conn.close()
+            return jsonify({'msg':True})
+
+        return jsonify({'msg':False})
+
 @app.route('/users', methods=['GET', 'POST'])
 def handle_users():
     conn = sqlite3.connect('user.db')
