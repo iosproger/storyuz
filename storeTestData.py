@@ -19,23 +19,16 @@ def history_add(date, userID, productnames, prices,quantity):
     conhistory = sqlite3.connect('history.db')
     cursothistory = conhistory.cursor()
 
-    # Convert lists to strings
-    productnames_str = ', '.join(productnames)
-    prices_str = ', '.join(map(str, prices))
-    quantity_str = ','.join(map(str, quantity))
+    # # Convert lists to strings
+    # productnames_str = ', '.join(productnames)
+    # prices_str = ', '.join(map(str, prices))
+    # quantity_str = ','.join(map(str, quantity))
 
     cursothistory.execute("INSERT INTO history (date, userID, productnames, prices, quantity) VALUES (?, ?, ?, ? ,?)",
-                          (date, userID, productnames_str, prices_str,quantity_str))
+                          (date, userID, productnames, prices,quantity))
     conhistory.commit()
     conhistory.close()
     print("Data added to history.db")
-
-
-# user_list = [
-#     {"id": 0, "username": "user1", "psw": "1234", "wallet": 1500},
-#     {"id": 1, "username": "user2", "psw": "1234", "wallet": 1000},
-#     {"id": 2, "username": "user3", "psw": "1234", "wallet": 2400}
-# ]
 
 
 @app.route('/history', methods=['GET', 'PUT'])
@@ -101,6 +94,152 @@ def index2():
 @app.route('/')
 def index():
     return 'Hello, world!'
+
+
+@app.route('/orders', methods=['PUT'])
+def orders():
+    connuser = sqlite3.connect('user.db')
+    cursoruser = connuser.cursor()
+
+    conn = db_connection()
+    cursor = conn.cursor()
+
+    if request.method == 'PUT':
+        try:
+            data = request.json
+
+            new_date = data['date']
+            new_userid = data['userid']
+            new_barcodes = data['barcodes']
+            new_numbers = data['numbers']
+
+            if len(new_numbers) != len(new_barcodes):
+                connuser.close()
+                conn.close()
+                return jsonify({'msg': 'length mismatch'}), 409
+
+            cursoruser.execute("SELECT * FROM user WHERE username = ?", (new_userid,))
+            existing_user = cursoruser.fetchone()
+
+            if not existing_user:
+                connuser.close()
+                conn.close()
+                return jsonify({'msg': 'user not found'}), 409
+
+            list_products = []
+
+            for barcode, number in zip(new_barcodes, new_numbers):
+                cursor.execute("SELECT * FROM product WHERE barcode = ?", (barcode,))
+                product = cursor.fetchone()
+                if not product:
+                    connuser.close()
+                    conn.close()
+                    return jsonify({'msg': f'barcode not found: {barcode}'}), 409
+                list_products.append((product, number))
+
+            new_wallet = 0
+            for product, number in list_products:
+                if int(product[3]) - number < 0:
+                    connuser.close()
+                    conn.close()
+                    return jsonify({'msg': 'Insufficient stock quantity'}), 409
+                product_quantity = int(product[3]) - number
+                new_wallet += float(product[4]) * number
+                cursor.execute("UPDATE product SET number = ? WHERE barcode = ?", (product_quantity, product[1]))
+
+            cursoruser.execute("UPDATE user SET wallet = ? WHERE username = ?", (new_wallet, new_userid))
+
+            productnames = [product[2] for product, _ in list_products]
+            productnames_str = ', '.join(productnames)
+            prices = [product[4] for product, _ in list_products]
+            prices_str = ', '.join(map(str, prices))
+            quantity_str = ','.join(map(str, new_numbers))
+
+            history_add(new_date, new_userid, productnames_str, prices_str, quantity_str)
+            conn.commit()
+            connuser.commit()
+            return jsonify({'msg': 'successful'})
+        except Exception as e:
+            return jsonify({'error': f'{e}'}), 400
+        finally:
+            connuser.close()
+            conn.close()
+
+    return jsonify({'error': 'Method not allowed'}), 405
+
+# date , userid ,barcode , quantity , prices
+# @app.route('/orders', methods=['PUT'])
+# def orders():
+#     connuser = sqlite3.connect('user.db')
+#     cursoruser = connuser.cursor()
+#
+#     conn = db_connection()
+#     cursor = conn.cursor()
+#
+#     if request.method == 'PUT':
+#         try:
+#             new_date = request.form['date']
+#             new_userid = request.form['userid']
+#             new_barcode = request.form['barcodes']
+#             print(new_barcode)
+#             new_numbers = request.form['numbers']
+#             print(new_numbers)
+#
+#             if len(new_numbers) != len(new_barcode):
+#                 connuser.close()
+#                 conn.close()
+#                 return jsonify({'msg': 'length out'}), 409
+#
+#             cursoruser.execute("SELECT * FROM user WHERE username = ?", (new_userid,))
+#             existing_user = cursoruser.fetchone()
+#
+#             if not existing_user:
+#                 connuser.close()
+#                 conn.close()
+#                 return jsonify({'msg': 'user not found'}), 409
+#
+#             list_barcodes = []
+#
+#             for i in new_barcode:
+#                 cursor.execute("SELECT * FROM product WHERE barcode = ?",(i,))
+#                 product = cursor.fetchone()
+#                 if not product:
+#                     connuser.close()
+#                     conn.close()
+#                     return jsonify({'msg':f'barcode not found {i}'}), 409
+#                 list_barcodes.append(product)
+#
+#             new_wallet = 0
+#             for i in range(len(list_barcodes)):
+#                 if int(list_barcodes[i][3]) - int(new_numbers[i]) < 0:
+#                     connuser.close()
+#                     conn.close()
+#                     return jsonify({'msg': 'Insufficient stock quantity'}), 409
+#                 list_barcodes[i][3]= int(list_barcodes[i][3]) - int(new_numbers[i])
+#                 new_wallet += float(list_barcodes[i][-1])*int(new_numbers[i])
+#
+#             for i in list_barcodes:
+#                 cursor.execute("UPDATE product SET number = ? WHERE barcode = ?",
+#                                (i[3],i[1]))
+#
+#             cursoruser.execute("UPDATE user SET wallet = ? WHERE username = ?", (new_wallet, new_userid))
+#             # user - wallet +
+#             # prud up date +
+#             # save
+#
+#             productnames = [i[2] for i in list_barcodes]
+#             productnames_str = ', '.join(productnames)
+#             prices = [i[4] for i in list_barcodes]
+#             prices_str = ', '.join(map(str, prices))
+#             quantity_str = ','.join(map(str, new_numbers))
+#
+#             history_add(new_date,new_userid,productnames_str,prices_str,quantity_str)
+#             conn.commit()
+#             connuser.commit()
+#             return jsonify({'msg':'successful'})
+#         except Exception as e:
+#             return jsonify(f'error: {e}'), 400
+#     return jsonify('error: Method not allowed'), 405
 
 @app.route('/user', methods=['GET'])
 def check_user():
@@ -207,6 +346,7 @@ def products_list():
 
         try:
             # Load JSON data from request
+            print(request.values)
             new_barcode = request.form['barcode']
             new_name = request.form['name']
             new_number = request.form['number']
